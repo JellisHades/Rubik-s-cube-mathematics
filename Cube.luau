@@ -19,7 +19,6 @@ local function GetCubeSize(Cube)
 	return math.sqrt(buffer.len(Cube) / 6)
 end
 
-
 local function GetOffset(Size, Face, X, Y)
 	return Face * Size ^ 2 + Y * Size + X
 end
@@ -68,19 +67,22 @@ function Module.PrintCube(Cube: buffer)
 	print(String)
 end
 
-function Module.RotateFace(Cube, MovedCube, Side, Size, Clockwise)
+function Module.RotateFace(Cube, Side, Size, Clockwise)
 	local PieceSize = math.floor(Size)
-
-	local Offset = Side * Size ^ 2
+	local CubeWidth = Size ^ 2
+	local Offset = Side * CubeWidth
+	
+	local CubeCopy = buffer.create(CubeWidth)
+	buffer.copy(CubeCopy, 0, Cube, Offset, CubeWidth)
 
 	for Row=1, PieceSize do
 		for Column=1, PieceSize do
-			local OldPos = ((Row - 1) * PieceSize + (Column - 1)) + Offset
+			local OldPos = ((Row - 1) * PieceSize + (Column - 1))
 			local NewPos = Offset + (Clockwise and 
 				((Column * PieceSize) - Row) or
 				((PieceSize - Column) * PieceSize + Row) - 1)
 			
-			buffer.writei8(MovedCube, NewPos, buffer.readi8(Cube, OldPos))
+			buffer.writei8(Cube, NewPos, buffer.readi8(CubeCopy, OldPos))
 		end
 	end
 end
@@ -120,12 +122,16 @@ function Module.MoveCube(Cube: buffer, Side: number, Level: number, Sideway: boo
 		Side = Sideway and 1 or 2
 		Sideway = false
 	end
+	
+	if not Sideway and Side > 2 then
+		Level = CubeSize - 1 - Level
+	end
+	Side = (Side - 1) % 2 + 1
 
 	local IsHorizontal = (Side > 0 or Side < 5) and Sideway
-	local SimplifiedSide = (Side - 1) % 2 + 1
 
-	local Line = (IsHorizontal and Horizontal) or (SimplifiedSide == 1 and SideVertical or FrontVertical)
-	local Calculation = "Get" .. ((IsHorizontal and "Horizontal") or (SimplifiedSide == 1 and "SideVertical" or "FrontVertical"))
+	local Line = (IsHorizontal and Horizontal) or (Side == 1 and SideVertical or FrontVertical)
+	local Calculation = "Get" .. ((IsHorizontal and "Horizontal") or (Side == 1 and "SideVertical" or "FrontVertical"))
 
 	Level = IsHorizontal and Level or Side <= 2 and Level or CubeSize - 1 - Level
 
@@ -135,7 +141,7 @@ function Module.MoveCube(Cube: buffer, Side: number, Level: number, Sideway: boo
 
 		if IsHorizontal then
 			RotatingSide = Level == 0 and 0 or 5
-		elseif SimplifiedSide == 1 then 
+		elseif Side == 1 then 
 			RotatingSide  = Level == 0 and 4 or 2
 		else
 			RotatingSide = Level == 0 and 1 or 3
@@ -143,7 +149,6 @@ function Module.MoveCube(Cube: buffer, Side: number, Level: number, Sideway: boo
 
 		for i=1, math.abs(Direction) do
 			Module.RotateFace(
-				Cube,
 				MovedCube, 
 				RotatingSide,
 				CubeSize, 
@@ -173,7 +178,8 @@ end
 
 function Module.DoNotation(Cube: buffer, Notation: 
 	"U" | "D" | "R" | "L" | "F" | "B" | 
-	"U'" | "D'" | "R'" | "L'" | "F'" | "B'")
+	"U'" | "D'" | "R'" | "L'" | "F'" | "B'" | string
+	)
 	local Side, Level, Sideway, Direction
 	
 	local Reverse = string.sub(Notation, #Notation, #Notation) == "'"
