@@ -4,7 +4,7 @@ local SideVertical = {1, 0, 3, 5}
 local FrontVertical = {2, 0, 4, 5}
 local Horizontal = {1, 2, 3, 4}
 
-local StringValue = {"W", "O", "G", "R", "B", "Y"} 
+local FacesValue = {"W", "O", "G", "R", "B", "Y"} 
 
 local function CopyBuffer(Buffer)
 	local BufferSize = buffer.len(Buffer)
@@ -27,7 +27,7 @@ function Module.CubeToString(Cube: buffer)
 	local String = ""
 
 	for Offset=0, buffer.len(Cube) - 1 do
-		String ..= StringValue[buffer.readi8(Cube, Offset) + 1]
+		String ..= FacesValue[buffer.readi8(Cube, Offset) + 1]
 	end
 
 	return String
@@ -61,7 +61,7 @@ function Module.PrintCube(Cube: buffer)
 			GetOffset(CubeSize, Side, X, Y)
 		)
 		
-		String ..= StringValue[Value + 1] .. " "
+		String ..= FacesValue[Value + 1] .. " "
 	end
 	
 	print(String)
@@ -72,8 +72,8 @@ function Module.RotateFace(Cube, Side, Size, Clockwise)
 	local CubeWidth = Size ^ 2
 	local Offset = Side * CubeWidth
 	
-	local CubeCopy = buffer.create(CubeWidth)
-	buffer.copy(CubeCopy, 0, Cube, Offset, CubeWidth)
+	local FaceCopy = buffer.create(CubeWidth)
+	buffer.copy(FaceCopy, 0, Cube, Offset, CubeWidth)
 
 	for Row=1, PieceSize do
 		for Column=1, PieceSize do
@@ -82,7 +82,7 @@ function Module.RotateFace(Cube, Side, Size, Clockwise)
 				((Column * PieceSize) - Row) or
 				((PieceSize - Column) * PieceSize + Row) - 1)
 			
-			buffer.writei8(Cube, NewPos, buffer.readi8(CubeCopy, OldPos))
+			buffer.writei8(Cube, NewPos, buffer.readi8(FaceCopy, OldPos))
 		end
 	end
 end
@@ -178,8 +178,9 @@ end
 
 function Module.DoNotation(Cube: buffer, Notation: 
 	"U" | "D" | "R" | "L" | "F" | "B" | 
-	"U'" | "D'" | "R'" | "L'" | "F'" | "B'" | string
-	)
+	"U'" | "D'" | "R'" | "L'" | "F'" | "B'" | 
+	string)
+	
 	local Side, Level, Sideway, Direction
 	
 	local Reverse = string.sub(Notation, #Notation, #Notation) == "'"
@@ -225,7 +226,7 @@ function Module.CreateCube(Size: number, State: string?)
 			buffer.writei8(
 				Cube, 
 				Offset, 
-				State and table.find(StringValue, StateColor) - 1 or Side
+				State and table.find(FacesValue, StateColor) - 1 or Side
 			)
 		end
 	end
