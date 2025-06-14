@@ -5,6 +5,7 @@ local FrontVertical = {2, 0, 4, 5}
 local Horizontal = {1, 2, 3, 4}
 
 local FacesValue = {"W", "O", "G", "R", "B", "Y"} 
+local MovesList = {"U", "D", "R", "L", "F", "B", "U'", "D'", "R'", "L'", "F'", "B'",}
 
 local function CopyBuffer(Buffer)
 	local BufferSize = buffer.len(Buffer)
@@ -232,6 +233,108 @@ function Module.CreateCube(Size: number, State: string?)
 	end
 
 	return Cube
+end
+
+function Module.IsSolved(Cube)
+	local CubeSize = GetCubeSize(Cube)
+	
+	local IsSolved = true
+	
+	for Side=0, 5 do
+		local ColorOnSide = nil
+		
+		for Offset=1, CubeSize ^ 2 do
+			local Offset = (Side * CubeSize ^ 2) + (Offset - 1)
+			local ColorOnPos = buffer.readi8(Cube, Offset)
+			
+			if not ColorOnSide then
+				ColorOnSide = ColorOnPos
+				continue
+			end
+			
+			if ColorOnPos ~= ColorOnSide then
+				IsSolved = false
+				break
+			end
+		end
+		
+		if not IsSolved then
+			break
+		end
+	end 
+	
+	return IsSolved
+end
+
+local function Heuristic(Node)
+	local CubeSize = GetCubeSize(Node)
+	local Distance = 0
+	
+	for Side=0, 5 do
+		local ColorOnSide = nil
+
+		for Offset=1, CubeSize ^ 2 do
+			local Offset = (Side * CubeSize ^ 2) + (Offset - 1)
+			local ColorOnPos = buffer.readi8(Node, Offset)
+
+			if not ColorOnSide then
+				ColorOnSide = ColorOnPos
+				continue
+			end
+
+			if ColorOnPos ~= ColorOnSide then
+				Distance += 1
+			end
+		end
+	end 
+	
+	return Distance
+end
+
+local function Search(Node, Cost, Bound, Path)
+	local Score = Cost + Heuristic(Node)
+	
+	if Score > Bound then 
+		return Score
+	elseif Module.IsSolved(Node) then
+		return true
+	end
+	
+	local MinimumCost = math.huge
+	
+	for i, Notation in MovesList do
+		local Neighbor = Module.DoNotation(Node, Notation)
+		
+		if not table.find(Path, Neighbor) then
+			table.insert(Path, Node)
+			local NewCost = Search(Neighbor, Cost + 1, Bound, Path)
+			
+			if NewCost == true then
+				return true
+			end
+			
+			if NewCost < MinimumCost then
+				MinimumCost = NewCost
+			end 
+		end
+	end
+	
+	return MinimumCost
+end
+
+function Module.SolveCube(Cube)
+	local Bound = Heuristic(Cube)
+	local Path = {}
+	
+	while true do
+		local NewBound = Search(Cube, 0, Bound, Path)
+		
+		if NewBound == true or NewBound == math.huge then
+			return Path
+		end
+				
+		Bound = NewBound
+	end
 end
 
 return Module
