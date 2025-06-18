@@ -5,7 +5,6 @@ local FrontVertical = {2, 0, 4, 5}
 local Horizontal = {1, 2, 3, 4}
 
 local FacesValue = {"W", "O", "G", "R", "B", "Y"} 
-local MovesList = {"U", "D", "R", "L", "F", "B", "U'", "D'", "R'", "L'", "F'", "B'",}
 
 local function CopyBuffer(Buffer)
 	local BufferSize = buffer.len(Buffer)
