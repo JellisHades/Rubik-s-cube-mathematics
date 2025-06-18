@@ -88,7 +88,7 @@ function Module.RotateFace(Cube, Side, Size, Clockwise)
 	end
 end
 
-function Module.GetSideVertical(Offset, Side, Level, CubeSize)
+Module[1] = function(Offset, Side, Level, CubeSize)
 	local Sideway = Side == 0 or Side == 5
 
 	CubeSize -= 1
@@ -100,14 +100,14 @@ function Module.GetSideVertical(Offset, Side, Level, CubeSize)
 		Sideway and Level or Offset
 end
 
-function Module.GetFrontVertical(Offset, Side, Level, CubeSize)
+Module[2] = function(Offset, Side, Level, CubeSize)
 	CubeSize -= 1
 
 	return Side == 4 and CubeSize - Level or Level,
 		Side == 4 and CubeSize - Offset or Offset
 end
 
-function Module.GetHorizontal(Offset, Side, Level, CubeSize)
+Module[3] = function(Offset, Side, Level, CubeSize)
 	return Offset, Level
 end
 
@@ -132,7 +132,7 @@ function Module.MoveCube(Cube: buffer, Side: number, Level: number, Sideway: boo
 	local IsHorizontal = (Side > 0 or Side < 5) and Sideway
 
 	local Line = (IsHorizontal and Horizontal) or (Side == 1 and SideVertical or FrontVertical)
-	local Calculation = "Get" .. ((IsHorizontal and "Horizontal") or (Side == 1 and "SideVertical" or "FrontVertical"))
+	local StripCalculation = ((IsHorizontal and 3) or (Side == 1 and 1 or 2))
 
 	Level = IsHorizontal and Level or Side <= 2 and Level or CubeSize - 1 - Level
 
@@ -163,11 +163,11 @@ function Module.MoveCube(Cube: buffer, Side: number, Level: number, Sideway: boo
 
 		for Offset=0, CubeSize - 1 do
 			local OldPos = GetOffset(CubeSize, SideToMove,
-				Module[Calculation](Offset, SideToMove, Level, CubeSize)
+				Module[StripCalculation](Offset, SideToMove, Level, CubeSize)
 			)
 
 			local NewPos = GetOffset(CubeSize, NeighborFace,
-				Module[Calculation](Offset, NeighborFace, Level, CubeSize)
+				Module[StripCalculation](Offset, NeighborFace, Level, CubeSize)
 			)
 
 			buffer.writei8(MovedCube, NewPos, buffer.readi8(Cube, OldPos))
@@ -233,37 +233,6 @@ function Module.CreateCube(Size: number, State: string?)
 	end
 
 	return Cube
-end
-
-function Module.IsSolved(Cube)
-	local CubeSize = GetCubeSize(Cube)
-	
-	local IsSolved = true
-	
-	for Side=0, 5 do
-		local ColorOnSide = nil
-		
-		for Offset=1, CubeSize ^ 2 do
-			local Offset = (Side * CubeSize ^ 2) + (Offset - 1)
-			local ColorOnPos = buffer.readi8(Cube, Offset)
-			
-			if not ColorOnSide then
-				ColorOnSide = ColorOnPos
-				continue
-			end
-			
-			if ColorOnPos ~= ColorOnSide then
-				IsSolved = false
-				break
-			end
-		end
-		
-		if not IsSolved then
-			break
-		end
-	end 
-	
-	return IsSolved
 end
 
 return Module
